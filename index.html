@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wycena Budowy Domu</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #667eea;
+            min-height: 100vh; 
+            padding: 20px;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            padding: 30px; 
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px; 
+        }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; }
+        .checkbox-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            background: #f5f5f5; 
+            padding: 10px 15px; 
+            border-radius: 8px;
+        }
+        .checkbox-item input { width: auto; }
+        .price-display { 
+            background: #667eea;
+            color: white; 
+            padding: 20px; 
+            border-radius: 10px;
+            text-align: center; 
+            font-size: 24px; 
+            margin: 20px 0;
+        }
+        .btn { 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 8px;
+            font-size: 16px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .buttons { text-align: center; margin-top: 20px; }
+        #podsumowanie { 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            padding: 20px; 
+            margin-top: 20px; 
+            display: none;
+        }
+        #podsumowanie p { margin: 8px 0; color: #555; }
+        .historia { margin-top: 20px; }
+        .historia-item { 
+            background: #e9ecef; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border-radius: 5px; 
+        }
+        .row { display: flex; gap: 20px; }
+        .row .form-group { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kalkulator Wyceny Budowy Domu</h1>
+        
+        <form id="formularz">
+            <div class="row">
+                <div class="form-group">
+                    <label for="powierzchnia">Powierzchnia domu (m2):</label>
+                    <input type="number" id="powierzchnia" min="50" max="500" value="100">
+                </div>
+                <div class="form-group">
+                    <label for="okna">Liczba okien:</label>
+                    <input type="number" id="okna" min="1" max="30" value="8">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="budulec">Rodzaj budulca:</label>
+                    <select id="budulec">
+                        <option value="3500">Cegla (3500 zl/m2)</option>
+                        <option value="3000">Drewno (3000 zl/m2)</option>
+                        <option value="2800">Beton komorkowy (2800 zl/m2)</option>
+                        <option value="3200">Keramzyt (3200 zl/m2)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="typDomu">Typ domu:</label>
+                    <select id="typDomu">
+                        <option value="1.0">Parterowy (+0%)</option>
+                        <option value="1.15">Pietrowy (+15%)</option>
+                        <option value="0.9">Blizniak (-10%)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="dach">Rodzaj dachu:</label>
+                <select id="dach">
+                    <option value="15000">Plaski (15 000 zl)</option>
+                    <option value="25000">Dwuspadowy (25 000 zl)</option>
+                    <option value="40000">Czterospadowy (40 000 zl)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Dodatkowe uslugi:</label>
+                <div class="checkbox-group" id="uslugiContainer"></div>
+            </div>
+        </form>
+
+        <div class="price-display">
+            Szacunkowa cena: <span id="cena">0</span> zl
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-primary" id="btnPodsumowanie">Podsumowanie</button>
+            <button class="btn btn-secondary" id="btnZapisz">Zapisz wycene</button>
+            <button class="btn btn-danger" id="btnReset">Resetuj</button>
+        </div>
+
+        <div id="podsumowanie"></div>
+
+        <div class="historia">
+            <h3>Historia wycen:</h3>
+            <div id="historiaLista"></div>
+        </div>
+    </div>
+
+    <script>
+        var cennik = {
+            okno: 1500,
+            uslugi: [
+                {nazwa: "Instalacja elektryczna", cena: 15000},
+                {nazwa: "Instalacja wodna", cena: 12000},
+                {nazwa: "Ogrzewanie podlogowe", cena: 20000},
+                {nazwa: "Klimatyzacja", cena: 8000},
+                {nazwa: "Alarm", cena: 5000},
+                {nazwa: "Wykonczenie pod klucz", cena: 50000}
+            ]
+        };
+
+        var dane = {
+            powierzchnia: 100,
+            okna: 8,
+            budulec: 3500,
+            typDomu: 1.0,
+            dach: 15000,
+            wybraneUslugi: []
+        };
+
+        function utworzCheckboxy() {
+            var kontener = document.getElementById("uslugiContainer");
+            
+            for (var i = 0; i < cennik.uslugi.length; i++) {
+                var div = document.createElement("div");
+                div.className = "checkbox-item";
+                
+                var input = document.createElement("input");
+                input.type = "checkbox";
+                input.className = "usluga-checkbox";
+                input.id = "usluga" + i;
+                input.value = cennik.uslugi[i].cena;
+                
+                var label = document.createElement("label");
+                label.htmlFor = "usluga" + i;
+                label.textContent = cennik.uslugi[i].nazwa + " (" + cennik.uslugi[i].cena + " zl)";
+                
+                div.appendChild(input);
+                div.appendChild(label);
+                kontener.appendChild(div);
+            }
+        }
+
+        function pobierzDane() {
+            dane.powierzchnia = parseInt(document.getElementById("powierzchnia").value);
+            dane.okna = parseInt(document.getElementById("okna").value);
+            dane.budulec = parseInt(document.getElementById("budulec").value);
+            dane.typDomu = parseFloat(document.getElementById("typDomu").value);
+            dane.dach = parseInt(document.getElementById("dach").value);
+            
+            dane.wybraneUslugi = [];
+            var checkboxy = document.getElementsByClassName("usluga-checkbox");
+            
+            for (var i = 0; i < checkboxy.length; i++) {
+                if (checkboxy[i].checked) {
+                    dane.wybraneUslugi.push(cennik.uslugi[i]);
+                }
+            }
+        }
+
+        function obliczCene() {
+            var cena = 0;
+            cena = cena + (dane.powierzchnia * dane.budulec);
+            cena = cena * dane.typDomu;
+            cena = cena + (dane.okna * cennik.okno);
+            cena = cena + dane.dach;
+            
+            for (var i = 0; i < dane.wybraneUslugi.length; i++) {
+                cena = cena + dane.wybraneUslugi[i].cena;
+            }
+            
+            return Math.round(cena);
+        }
+
+        function aktualizujCene() {
+            pobierzDane();
+            var cena = obliczCene();
+            document.getElementById("cena").textContent = cena;
+        }
+
+        function generujPodsumowanie() {
+            pobierzDane();
+            var div = document.getElementById("podsumowanie");
+            div.style.display = "block";
+            
+            var uslugiTekst = "";
+            if (dane.wybraneUslugi.length > 0) {
+                for (var i = 0; i < dane.wybraneUslugi.length; i++) {
+                    uslugiTekst = uslugiTekst + dane.wybraneUslugi[i].nazwa;
+                    if (i < dane.wybraneUslugi.length - 1) {
+                        uslugiTekst = uslugiTekst + ", ";
+                    }
+                }
+            } else {
+                uslugiTekst = "Brak";
+            }
+
+            var html = "";
+            html = html + "<h3>Podsumowanie wyceny</h3>";
+            html = html + "<p><strong>Powierzchnia:</strong> " + dane.powierzchnia + " m2</p>";
+            html = html + "<p><strong>Liczba okien:</strong> " + dane.okna + "</p>";
+            html = html + "<p><strong>Cena budulca:</strong> " + dane.budulec + " zl/m2</p>";
+            html = html + "<p><strong>Mnoznik typu domu:</strong> " + dane.typDomu + "</p>";
+            html = html + "<p><strong>Cena dachu:</strong> " + dane.dach + " zl</p>";
+            html = html + "<p><strong>Uslugi dodatkowe:</strong> " + uslugiTekst + "</p>";
+            html = html + "<p><strong>CALKOWITA CENA: " + obliczCene() + " zl</strong></p>";
+            
+            div.innerHTML = html;
+        }
+
+        function zapiszWycene() {
+            pobierzDane();
+            
+            var zapisane = localStorage.getItem("wyceny");
+            var wyceny;
+            
+            if (zapisane === null) {
+                wyceny = [];
+            } else {
+                wyceny = JSON.parse(zapisane);
+            }
+            
+            var dzis = new Date();
+            var nowaWycena = {
+                data: dzis.toLocaleDateString("pl-PL"),
+                powierzchnia: dane.powierzchnia,
+                cena: obliczCene()
+            };
+            
+            wyceny.push(nowaWycena);
+            localStorage.setItem("wyceny", JSON.stringify(wyceny));
+            
+            wyswietlHistorie();
+            alert("Wycena zostala zapisana!");
+        }
+
+        function wyswietlHistorie() {
+            var lista = document.getElementById("historiaLista");
+            var zapisane = localStorage.getItem("wyceny");
+            var wyceny;
+            
+            if (zapisane === null) {
+                wyceny = [];
+            } else {
+                wyceny = JSON.parse(zapisane);
+            }
+            
+            lista.innerHTML = "";
+            
+            if (wyceny.length === 0) {
+                lista.innerHTML = "<p>Brak zapisanych wycen</p>";
+                return;
+            }
+            
+            for (var i = 0; i < wyceny.length; i++) {
+                var div = document.createElement("div");
+                div.className = "historia-item";
+                div.textContent = (i + 1) + ". " + wyceny[i].data + " - " + wyceny[i].powierzchnia + "m2 - " + wyceny[i].cena + " zl";
+                lista.appendChild(div);
+            }
+        }
+
+        function resetFormularz() {
+            document.getElementById("formularz").reset();
+            document.getElementById("podsumowanie").style.display = "none";
+            
+            var checkboxy = document.getElementsByClassName("usluga-checkbox");
+            for (var i = 0; i < checkboxy.length; i++) {
+                checkboxy[i].checked = false;
+            }
+            
+            aktualizujCene();
+        }
+
+        document.getElementById("formularz").addEventListener("input", aktualizujCene);
+        document.getElementById("btnPodsumowanie").addEventListener("click", generujPodsumowanie);
+        document.getElementById("btnZapisz").addEventListener("click", zapiszWycene);
+        document.getElementById("btnReset").addEventListener("click", resetFormularz);
+        document.getElementById("uslugiContainer").addEventListener("change", aktualizujCene);
+
+        utworzCheckboxy();
+        wyswietlHistorie();
+        aktualizujCene();
+    </script>
+</body>
+</html>
